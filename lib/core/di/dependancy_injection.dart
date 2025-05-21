@@ -10,6 +10,9 @@ import 'package:chat_app/feature/chat/data/datesource/message_remote_datasource.
 import 'package:chat_app/feature/chat/data/repo/message_repo_impl.dart';
 import 'package:chat_app/feature/chat/domain/repo/message_repo.dart';
 import 'package:chat_app/feature/chat/domain/usecases/fetch_message_usecase.dart';
+import 'package:chat_app/feature/chat/domain/usecases/join_conversation_use_case.dart';
+import 'package:chat_app/feature/chat/domain/usecases/listen_messages_use_case.dart';
+import 'package:chat_app/feature/chat/domain/usecases/send_message_use_case.dart';
 import 'package:chat_app/feature/chat/presentation/cubit/chat_cubit.dart';
 import 'package:chat_app/feature/contacts/data/datesources/contacts_remote_data_source.dart';
 import 'package:chat_app/feature/contacts/data/repo/contacts_repo_impl.dart';
@@ -21,6 +24,7 @@ import 'package:chat_app/feature/conversation/data/repo/conversation_repo_impl.d
 import 'package:chat_app/feature/conversation/domain/repo/conversation_repo.dart';
 import 'package:chat_app/feature/conversation/domain/usecase/check_or_create_conversation_use_case.dart';
 import 'package:chat_app/feature/conversation/domain/usecase/fetch_conversation_use_case.dart';
+import 'package:chat_app/feature/conversation/domain/usecase/listen_conversation_updates_use_case.dart';
 import 'package:chat_app/feature/conversation/presentation/cubit/conversation_cubit.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
@@ -33,7 +37,7 @@ final getIt = GetIt.instance;
 Future<void> setupGetIt() async {
   // Dio & ApiService
   Dio dio = DioFactory.getDio();
-  getIt.registerLazySingleton<SocketService>(() => SocketService());
+  getIt.registerLazySingleton<ISocketService>(() => SocketService());
 
   //auth
   getIt.registerLazySingleton<AuthRemoteDataSource>(
@@ -60,7 +64,7 @@ Future<void> setupGetIt() async {
   );
 
   getIt.registerLazySingleton<ConversationRepo>(
-    () => ConversationRepoImpl(getIt<ConversationRemoteDataSource>()),
+    () => ConversationRepoImpl( conversationRemoteDataSource: getIt<ConversationRemoteDataSource>() , socketService: getIt<ISocketService>()),
   );
 
   getIt.registerLazySingleton<FetchConversationUseCase>(
@@ -71,23 +75,44 @@ Future<void> setupGetIt() async {
         conversationRepo: getIt<ConversationRepo>()),
   );
 
+  getIt.registerLazySingleton<ListenConversationUpdatesUseCase>(
+        () => ListenConversationUpdatesUseCase(conversationRepo: getIt<ConversationRepo>()),
+  );
+
   getIt.registerFactory<ConversationCubit>(() => ConversationCubit(
       fetchConversationUseCase: getIt<FetchConversationUseCase>(),
-      socketService: getIt<SocketService>()));
+      listenUpdatesUseCase: getIt<ListenConversationUpdatesUseCase>(),
+      ));
 
   //message
   getIt.registerLazySingleton<MessageRemoteDatasource>(
       () => MessageRemoteDatasource(dio));
 
-  getIt.registerLazySingleton<MessageRepo>(
-      () => MessageRepoImpl(getIt<MessageRemoteDatasource>()));
+  getIt.registerLazySingleton<MessageRepo>(() => MessageRepoImpl(
+      messageRemoteDatasource: getIt<MessageRemoteDatasource>(),
+      socketService: getIt<ISocketService>()));
 
   getIt.registerLazySingleton<FetchMessageUseCase>(
       () => FetchMessageUseCase(getIt<MessageRepo>()));
 
-  getIt.registerFactory<ChatCubit>(() => ChatCubit(
-      fetchMessageUseCase: getIt<FetchMessageUseCase>(),
-      socketService: getIt<SocketService>()));
+  getIt.registerLazySingleton<ListenMessagesUseCase>(
+      () => ListenMessagesUseCase(getIt<MessageRepo>()));
+
+  getIt.registerLazySingleton<JoinConversationUseCase>(
+      () => JoinConversationUseCase(getIt<MessageRepo>()));
+
+  getIt.registerLazySingleton<SendMessageUseCase>(
+      () => SendMessageUseCase(getIt<MessageRepo>()));
+
+
+  getIt.registerFactory<ChatCubit>(
+    () => ChatCubit(
+      fetchUseCase: getIt<FetchMessageUseCase>(),
+      joinUseCase: getIt<JoinConversationUseCase>(),
+      listenUseCase: getIt<ListenMessagesUseCase>(),
+      sendUseCase: getIt<SendMessageUseCase>(),
+    ),
+  );
 
   // contact
   getIt.registerLazySingleton<ContactsRemoteDataSource>(

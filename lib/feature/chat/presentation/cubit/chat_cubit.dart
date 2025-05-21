@@ -1,21 +1,34 @@
+import 'dart:async';
+
 import 'package:bloc/bloc.dart';
 import 'package:chat_app/core/helper/shared_pref_helper.dart';
 import 'package:chat_app/core/services/socket_service.dart' show SocketService;
 import 'package:chat_app/feature/chat/domain/entities/message_entity.dart';
 import 'package:chat_app/feature/chat/domain/usecases/fetch_message_usecase.dart';
+import 'package:chat_app/feature/chat/domain/usecases/join_conversation_use_case.dart';
+import 'package:chat_app/feature/chat/domain/usecases/listen_messages_use_case.dart';
+import 'package:chat_app/feature/chat/domain/usecases/send_message_use_case.dart';
 import 'package:flutter/material.dart';
 
 part 'chat_state.dart';
 
 class ChatCubit extends Cubit<ChatState> {
-    ChatCubit({required this.fetchMessageUseCase, required this.socketService}) : super(ChatInitial());
-  final FetchMessageUseCase fetchMessageUseCase;
+  final FetchMessageUseCase fetchUseCase;
+  final SendMessageUseCase sendUseCase;
+  final JoinConversationUseCase joinUseCase;
+  final ListenMessagesUseCase listenUseCase;
 
-  final SocketService socketService ;
+  ChatCubit({
+    required this.fetchUseCase,
+    required this.sendUseCase,
+    required this.joinUseCase,
+    required this.listenUseCase,
+  }) : super(ChatInitial());
+
   final TextEditingController messageController = TextEditingController();
   String conversationId = '';
-
   final List<MessageEntity> _messages = [];
+  StreamSubscription<MessageEntity>? _sub;
 
   void setConversationId(String id) {
     conversationId = id;
@@ -23,50 +36,40 @@ class ChatCubit extends Cubit<ChatState> {
 
   Future<void> fetchMessages() async {
     emit(ChatLoadingState());
-    var result = await fetchMessageUseCase(conversationId);
+    final result = await fetchUseCase(conversationId);
     result.when(
       success: (data) {
-        _messages.clear();
-        _messages.addAll(data);
+        _messages
+          ..clear()
+          ..addAll(data);
         emit(ChatLoadedState(List.from(_messages.reversed)));
-        socketService.socket.off('newMessage');
-        socketService.socket.emit('joinConversation', conversationId);
-        socketService.socket.on(
-          'newMessage',
-          (data) {
-            print('step1 - receive $data');
-            receiveMessage(data);
-          },
-        );
+
+        joinUseCase(conversationId);
+        _sub = listenUseCase().listen((message) {
+          _messages.add(message);
+          emit(ChatLoadedState(List.from(_messages.reversed)));
+        });
       },
-      failure: (errorMessage) {
-        emit(ChatErrorState(errorMessage));
-      },
+      failure: (err) => emit(ChatErrorState(err)),
     );
   }
 
   Future<void> sendMessage() async {
-    String userId = await SharedPrefHelper.getSecuredString('userId');
-    final newMessage = {
-      'conversationId': conversationId,
-      'senderId': userId,
-      'content': messageController.text,
-    };
-    print('Sending message payload: $newMessage');
-    socketService.socket.emit('sendMessage', newMessage);
+    final userId = await SharedPrefHelper.getSecuredString('userId');
+    final message = MessageEntity(
+      id: '',
+      conversationId: conversationId,
+      senderId: userId,
+      content: messageController.text,
+      createdAt: DateTime.now().toIso8601String(),
+    );
+    await sendUseCase(message);
+    messageController.clear();
   }
 
-  Future<void> receiveMessage(dynamic data) async {
-    final message = MessageEntity(
-      id: data['id'],
-      conversationId: data['conversation_id'],
-      senderId: data['sender_id'],
-      content: data['content'],
-      createdAt: data['created_at'],
-    );
-
-    _messages.add(message);
-    emit(ChatLoadedState(List.from(_messages.reversed)));
-
+  @override
+  Future<void> close() {
+    _sub?.cancel();
+    return super.close();
   }
 }

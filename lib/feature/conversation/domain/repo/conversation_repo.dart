@@ -3,6 +3,7 @@ import 'package:chat_app/feature/conversation/domain/entities/conversation_entit
 
 abstract class ConversationRepo {
   Future<ApiResult<List<ConversationEntity>>> fetchConversations();
-
   Future<ApiResult<String>> checkOrCreateConversation({required String contactId});
+
+  Stream<void> onConversationUpdated();
 }

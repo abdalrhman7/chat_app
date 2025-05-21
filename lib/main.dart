@@ -13,7 +13,7 @@ import 'feature/conversation/presentation/screen/conversation_screen.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   setupGetIt();
-  final socketService = getIt<SocketService>();
+  final socketService = getIt<ISocketService>();
   socketService.initSocket();
   runApp(
     MyApp(
