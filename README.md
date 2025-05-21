@@ -1,16 +1,25 @@
-# chat_app
+# 💬 Chat App
 
-A new Flutter project.
+A real-time chat application , enabling users to register, add contacts, and engage in instant messaging. It uses `Socket.IO` for real-time communication and follows clean architectural principles for scalable development.
 
-## Getting Started
+## 🚀 Features
 
-This project is a starting point for a Flutter application.
+- 🔐 **User Authentication** (Register / Login)
+- 🧑‍🤝‍🧑 **Add Contacts**
+- 💬 **Real-Time Messaging** with `Socket.IO`
+- 📨 **Message History** via REST API
+- 📡 **Live Chat Updates** using socket event listeners
+- ♻️ **Clean Architecture** structure
+- ⚙️ **Cubit** for state management
+- 🧩 **GetIt** for dependency injection
+- 🌐 **Retrofit + Dio** for API integration
 
-A few resources to get you started if this is your first Flutter project:
+## 🛠️ Technologies Used
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- **Flutter**
+- **Socket.IO**
+- **Dio**
+- **Retrofit**
+- **Cubit**
+- **GetIt**
+- **Clean Architecture**
