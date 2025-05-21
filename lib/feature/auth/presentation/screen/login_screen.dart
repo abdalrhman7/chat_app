@@ -47,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     );
                   }
                   if (state is AuthSuccess) {
-                    Navigator.of(context).pushNamed(Routes.messageScreen);
+                    Navigator.of(context).pushNamedAndRemoveUntil(Routes.conversationScreen , (route) => false);
                   }
                 },
                 builder: (context, state) {

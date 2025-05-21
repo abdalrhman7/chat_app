@@ -1,20 +1,41 @@
 import 'package:chat_app/core/netwoking/dio_factory.dart';
+import 'package:chat_app/core/services/socket_service.dart';
 import 'package:chat_app/feature/auth/data/datesources/auth_remote_date_source.dart';
-import 'package:chat_app/feature/auth/data/repositories/auth_repo_impl.dart';
+import 'package:chat_app/feature/auth/data/repo/auth_repo_impl.dart';
 import 'package:chat_app/feature/auth/domain/repo/auth_repository.dart';
 import 'package:chat_app/feature/auth/domain/usecases/login_usecase.dart';
 import 'package:chat_app/feature/auth/domain/usecases/register_usecase.dart';
 import 'package:chat_app/feature/auth/presentation/cubit/auth_cubit.dart';
+import 'package:chat_app/feature/chat/data/datesource/message_remote_datasource.dart';
+import 'package:chat_app/feature/chat/data/repo/message_repo_impl.dart';
+import 'package:chat_app/feature/chat/domain/repo/message_repo.dart';
+import 'package:chat_app/feature/chat/domain/usecases/fetch_message_usecase.dart';
+import 'package:chat_app/feature/chat/presentation/cubit/chat_cubit.dart';
+import 'package:chat_app/feature/contacts/data/datesources/contacts_remote_data_source.dart';
+import 'package:chat_app/feature/contacts/data/repo/contacts_repo_impl.dart';
+import 'package:chat_app/feature/contacts/domain/repo/contact_repo.dart';
+import 'package:chat_app/feature/contacts/domain/usecases/fetch_contact_usecase.dart';
+import 'package:chat_app/feature/contacts/presentation/cubit/contacts_cubit.dart';
+import 'package:chat_app/feature/conversation/data/datesource/conversation_remote_datesource.dart';
+import 'package:chat_app/feature/conversation/data/repo/conversation_repo_impl.dart';
+import 'package:chat_app/feature/conversation/domain/repo/conversation_repo.dart';
+import 'package:chat_app/feature/conversation/domain/usecase/check_or_create_conversation_use_case.dart';
+import 'package:chat_app/feature/conversation/domain/usecase/fetch_conversation_use_case.dart';
+import 'package:chat_app/feature/conversation/presentation/cubit/conversation_cubit.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
+
+import '../../feature/contacts/domain/usecases/add_contact_usecase.dart'
+    show AddContactUseCase;
 
 final getIt = GetIt.instance;
 
 Future<void> setupGetIt() async {
   // Dio & ApiService
   Dio dio = DioFactory.getDio();
+  getIt.registerLazySingleton<SocketService>(() => SocketService());
 
-  //login
+  //auth
   getIt.registerLazySingleton<AuthRemoteDataSource>(
     () => AuthRemoteDataSource(dio),
   );
@@ -29,17 +50,64 @@ Future<void> setupGetIt() async {
   );
 
   getIt.registerFactory<AuthCubit>(() => AuthCubit(
-    loginUseCase: getIt<LoginUseCase>(),
-    registerUseCase: getIt<RegisterUseCase>(),
-  ));
+        loginUseCase: getIt<LoginUseCase>(),
+        registerUseCase: getIt<RegisterUseCase>(),
+      ));
 
-  // signup
-  // getIt.registerLazySingleton<SignupRepo>(() => SignupRepo(getIt<ApiService>()));
-  // getIt.registerFactory<SignUpCubit>(() => SignUpCubit(getIt<SignupRepo>()));
-  //
+  //conversation
+  getIt.registerLazySingleton<ConversationRemoteDataSource>(
+    () => ConversationRemoteDataSource(dio),
+  );
 
-  // login
-  // getIt.registerLazySingleton<LoginRepo>(() => LoginRepo(getIt<ApiService>()));
-  // getIt.registerFactory<LoginCubit>(() => LoginCubit(getIt<LoginRepo>()));
-  //
+  getIt.registerLazySingleton<ConversationRepo>(
+    () => ConversationRepoImpl(getIt<ConversationRemoteDataSource>()),
+  );
+
+  getIt.registerLazySingleton<FetchConversationUseCase>(
+    () => FetchConversationUseCase(conversationRepo: getIt<ConversationRepo>()),
+  );
+  getIt.registerLazySingleton<CheckOrCreateConversationUseCase>(
+    () => CheckOrCreateConversationUseCase(
+        conversationRepo: getIt<ConversationRepo>()),
+  );
+
+  getIt.registerFactory<ConversationCubit>(() => ConversationCubit(
+      fetchConversationUseCase: getIt<FetchConversationUseCase>(),
+      socketService: getIt<SocketService>()));
+
+  //message
+  getIt.registerLazySingleton<MessageRemoteDatasource>(
+      () => MessageRemoteDatasource(dio));
+
+  getIt.registerLazySingleton<MessageRepo>(
+      () => MessageRepoImpl(getIt<MessageRemoteDatasource>()));
+
+  getIt.registerLazySingleton<FetchMessageUseCase>(
+      () => FetchMessageUseCase(getIt<MessageRepo>()));
+
+  getIt.registerFactory<ChatCubit>(() => ChatCubit(
+      fetchMessageUseCase: getIt<FetchMessageUseCase>(),
+      socketService: getIt<SocketService>()));
+
+  // contact
+  getIt.registerLazySingleton<ContactsRemoteDataSource>(
+      () => ContactsRemoteDataSource(dio));
+
+  getIt.registerLazySingleton<ContactsRepo>(
+      () => ContactsRepoImpl(getIt<ContactsRemoteDataSource>()));
+
+  getIt.registerLazySingleton<AddContactUseCase>(
+      () => AddContactUseCase(contactsRepo: getIt<ContactsRepo>()));
+
+  getIt.registerLazySingleton<FetchContactUseCase>(
+      () => FetchContactUseCase(contactsRepo: getIt<ContactsRepo>()));
+
+  getIt.registerFactory<ContactsCubit>(
+    () => ContactsCubit(
+      addContactUseCase: getIt<AddContactUseCase>(),
+      fetchContactUseCase: getIt<FetchContactUseCase>(),
+      checkOrCreateConversationUseCase:
+          getIt<CheckOrCreateConversationUseCase>(),
+    ),
+  );
 }

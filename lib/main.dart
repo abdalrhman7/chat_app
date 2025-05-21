@@ -2,16 +2,19 @@ import 'package:chat_app/core/theme.dart';
 import 'package:chat_app/feature/auth/presentation/screen/register_screen.dart';
 import 'package:flutter/material.dart';
 
-import 'chat_screen.dart';
+import 'core/services/socket_service.dart';
+import 'feature/chat/presentation/screen/chat_screen.dart';
 import 'core/di/dependancy_injection.dart';
 import 'core/routing/app_router.dart';
 import 'core/routing/routes.dart';
 import 'feature/auth/presentation/screen/login_screen.dart';
-import 'message_screen.dart';
+import 'feature/conversation/presentation/screen/conversation_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   setupGetIt();
+  final socketService = getIt<SocketService>();
+  socketService.initSocket();
   runApp(
     MyApp(
       appRouter: AppRouter(),

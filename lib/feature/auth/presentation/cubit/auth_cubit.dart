@@ -1,5 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:chat_app/core/helper/shared_pref_helper.dart';
+import 'package:chat_app/core/netwoking/dio_factory.dart';
 import 'package:chat_app/feature/auth/domain/usecases/login_usecase.dart';
 import 'package:chat_app/feature/auth/domain/usecases/register_usecase.dart';
 import 'package:meta/meta.dart';
@@ -17,9 +18,11 @@ class AuthCubit extends Cubit<AuthState> {
     emit(AuthLoading());
     var result = await loginUseCase(email, password);
     result.when(
-      success: (data) {
+      success: (data) async{
         print('dataaaaaa ${data.token}');
-        SharedPrefHelper.setSecuredString('token', data.token!);
+       await SharedPrefHelper.setSecuredString('token', data.token!);
+        await SharedPrefHelper.setSecuredString('userId', data.id);
+        DioFactory.setTokenIntoHeaderAfterLogin(data.token!);
         emit(AuthSuccess('Login Success'));
       },
       failure: (errorMessage) {

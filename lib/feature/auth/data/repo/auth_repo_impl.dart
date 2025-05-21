@@ -15,7 +15,7 @@ class AuthRepoImpl implements AuthRepository {
           .login({"email": email, "password": password});
       return ApiResult.success(result);
     } catch (e) {
-      print(' errorrrrr ${e.toString()}');
+      print('errorrrrr ${e.toString()}');
       return ApiResult.failure(e.toString());
     }
   }
